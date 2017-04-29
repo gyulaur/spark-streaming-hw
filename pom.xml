@@ -13,8 +13,18 @@
         <spark.version>2.1.0</spark.version>
         <spark.scala.version>2.11</spark.scala.version>
         <scala.version>2.11.8</scala.version>
+        <runtime.environment.scope>provided</runtime.environment.scope>
     </properties>
 
+
+    <profiles>
+        <profile>
+            <id>ide-scope</id>
+            <properties>
+                <runtime.environment.scope>compile</runtime.environment.scope>
+            </properties>
+        </profile>
+    </profiles>
 
     <build>
         <plugins>
@@ -26,6 +36,19 @@
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -40,21 +63,25 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.11</artifactId>
             <version>${spark.version}</version>
+            <scope>${runtime.environment.scope}</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_2.11</artifactId>
             <version>${spark.version}</version>
+            <scope>${runtime.environment.scope}</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-streaming_2.11</artifactId>
             <version>${spark.version}</version>
+            <scope>${runtime.environment.scope}</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
@@ -63,7 +90,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-
-
 </project>
