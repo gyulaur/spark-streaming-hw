@@ -100,12 +100,12 @@ object StreamingExample {
     *         - number of movies where the actor played since the beginning of time
     */
   def task1(actorsOfMovies: InputDStream[String]): DStream[(String, Long)] = {
-
-    // == DELETE THE NEXT LINE AND ADD YOUR OWN IMPLEMENTATION ==
-    actorsOfMovies.map(line => ("Chuck Norris!", 100000L))
-
+    actorsOfMovies.map(line => line.split("\t")).map(data => (data(0), 1L)).updateStateByKey(updateActors)
   }
 
+  def updateActors(newValues: Seq[Long], count: Option[Long]): Option[Long] = {
+    Some(count.getOrElse(0L) + newValues.size)
+  }
 
   /**
     * function implementing task 2
@@ -121,12 +121,27 @@ object StreamingExample {
     *         - average rating of movies where the actor played since the beginning of time
     */
   def task2(actorsOfMovies: InputDStream[String], movieRatingEvents: InputDStream[String]): DStream[(String, Long, Float)] = {
+    val actorsWithMovies = actorsOfMovies
+      .map(actorWithMovie => actorWithMovie.split("\t"))
+      .map(data => (data(1), data(0)))
 
-    // == DELETE THE NEXT LINE AND ADD YOUR OWN IMPLEMENTATION ==
-    actorsOfMovies.map(line => ("Chuck Norris!", 10000000L, 10.0f))
+    val moviesWithRatings = movieRatingEvents
+      .map(movieWithRating => movieWithRating.split("\t"))
+      .map(data => (data(1), data(0).toDouble))
 
+    moviesWithRatings
+      .join(actorsWithMovies)
+      .map(line => (line._2._2, (1L, line._2._1.toFloat)))
+      .updateStateByKey(updateActorsWithRatings)
+      .map(actorsWithRatingsTuple => (actorsWithRatingsTuple._1, actorsWithRatingsTuple._2._1 * 1000, actorsWithRatingsTuple._2._2 / actorsWithRatingsTuple._2._1))
+      .transform(rdd => rdd.sortBy(_._3, false))
   }
 
+  def updateActorsWithRatings(newRatings: Seq[(Long, Float)], currentRatings: Option[(Long, Float)]): Option[(Long, Float)] = {
+    val sumOfRatings = currentRatings.getOrElse((0, 0f))._2 + newRatings.map(ratingAndCount => ratingAndCount._2).sum
+    val newCount = currentRatings.getOrElse((0L, 0f))._1 + newRatings.map(x => x._1).sum
+    Some((newCount, sumOfRatings))
+  }
 
   /**
     * function implementing task 3
@@ -142,10 +157,12 @@ object StreamingExample {
   def task3(actorRatingsSinceBeginningOfTime: DStream[(String, Long, Float)],
             numberOfMoviesByActors: DStream[(String, Long)],
             minimumNumberOfMovies: Int): DStream[(String, Float, Long)] = {
-
-    // == DELETE THE NEXT LINE AND ADD YOUR OWN IMPLEMENTATION ==
-    numberOfMoviesByActors.map(line => ("Chuck Norris!", 10.0f, 100000L))
-
+    val actorRatings = actorRatingsSinceBeginningOfTime
+      .map(actorRating => (actorRating._1, (actorRating._2, actorRating._3)))
+    numberOfMoviesByActors
+      .filter(actorWithMovies => actorWithMovies._2 >= minimumNumberOfMovies)
+      .join(actorRatings)
+      .map(result => (result._1, result._2._2._2, result._2._1))
   }
 
 
